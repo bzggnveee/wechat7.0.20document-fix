@@ -17,8 +17,20 @@ android {
     }
 
     buildTypes {
-        release {
-            isMinifyEnabled = false
+        debug {
+            isMinifyEnabled = true
+            isShrinkResources = true
+            isDebuggable = false
+            multiDexEnabled = true
+            vcsInfo.include = false
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-debuginfo-remove.pro",
+                "proguard-rules.pro"
+            )
+            ndk {
+                debugSymbolLevel = "NONE"
+            }
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -38,5 +50,5 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.espresso.core)
-    compileOnly("de.robv.android.xposed:api:82")
+    compileOnly(libs.api)
 }

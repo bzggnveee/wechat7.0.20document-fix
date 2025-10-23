@@ -1,21 +1,54 @@
-# Add project specific ProGuard rules here.
-# You can control the set of applied configuration files using the
-# proguardFiles setting in build.gradle.
-#
-# For more details, see
-#   http://developer.android.com/guide/developing/tools/proguard.html
+-dontwarn org.bouncycastle.jsse.BCSSLParameters
+-dontwarn org.bouncycastle.jsse.BCSSLSocket
+-dontwarn org.bouncycastle.jsse.provider.BouncyCastleJsseProvider
+-dontwarn org.conscrypt.Conscrypt$Version
+-dontwarn org.conscrypt.Conscrypt
+-dontwarn org.conscrypt.ConscryptHostnameVerifier
+-dontwarn org.openjsse.javax.net.ssl.SSLParameters
+-dontwarn org.openjsse.javax.net.ssl.SSLSocket
+-dontwarn org.openjsse.net.ssl.OpenJSSE
+-dontwarn java.beans.Introspector
+-dontwarn java.beans.VetoableChangeListener
+-dontwarn java.beans.VetoableChangeSupport
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+# Keep ini4j Service Provider Interface
+-keep,allowobfuscation,allowoptimization public class org.ini4j.spi.*
 
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
+# Kotlin
+-assumenosideeffects class kotlin.jvm.internal.Intrinsics {
+    public static void check*(...);
+    public static void throw*(...);
+}
 
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+-assumenosideeffects class kotlin.jvm.internal.Intrinsics {  
+    public static void checkNotNull(...);  
+    public static void checkParameterIsNotNull(...);  
+    public static void checkNotNullParameter(...);  
+    public static void checkExpressionValueIsNotNull(...);  
+    public static void checkNotNullExpressionValue(...);  
+    public static void checkReturnedValueIsNotNull(...);  
+    public static void throwUninitializedPropertyAccessException(...);  
+}
+
+-assumenosideeffects class android.util.Log {  
+    public static *** d(...);  
+    public static *** v(...);  
+    public static *** i(...);  
+}
+
+-dontobfuscate
+-allowaccessmodification
+-renamesourcefileattribute ""  
+-keepattributes !SourceFile,!LineNumberTable,Exceptions,Signature,InnerClasses,EnclosingMethod 
+-dontusemixedcaseclassnames
+-dontskipnonpubliclibraryclasses
+-dontpreverify
+-verbose
+-optimizations !code/simplification/arithmetic,!code/simplification/cast,!field/*,!class/merging/*
+-optimizationpasses 5
+-allowaccessmodification
+-mergeinterfacesaggressively
+-renamesourcefileattribute SourceFile
+
+-keep class n3e.a7020.MainHook { *; }
+-keep class n3e.a7020.R { *; }

@@ -1,5 +1,6 @@
 [versions]
 agp = "8.11.1"
+api = "82"
 junit = "4.13.2"
 junitVersion = "1.1.5"
 espressoCore = "3.5.1"
@@ -7,6 +8,7 @@ appcompat = "1.6.1"
 material = "1.10.0"
 
 [libraries]
+api = { module = "de.robv.android.xposed:api", version.ref = "api" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 ext-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
 espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }

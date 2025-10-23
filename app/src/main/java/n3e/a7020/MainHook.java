@@ -1,5 +1,4 @@
 package n3e.a7020;
-//MainHook
 
 import android.app.Activity;
 import android.content.ClipData;
@@ -8,12 +7,11 @@ import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.DocumentsContract;
 import android.provider.MediaStore;
-import android.util.Log;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
@@ -36,26 +34,26 @@ public class MainHook implements IXposedHookLoadPackage {
     private static final String WECHAT_ORIGINAL_USER_KEY = "TO_USER";
 
     @Override
-    public void handleLoadPackage(XC_LoadPackage.LoadPackageParam lpparam) throws Throwable {
+    public void handleLoadPackage(XC_LoadPackage.LoadPackageParam lpparam) {
         if (!lpparam.packageName.equals("com.tencent.mm")) return;
-        XposedBridge.log(TAG + ": Hooking WeChat process...");
+        XposedBridge.log(TAG + ": 开始hook强制使用系统文件管理器...");
 
         XposedHelpers.findAndHookMethod(Activity.class, "startActivityForResult",
                 Intent.class, int.class, Bundle.class, new XC_MethodHook() {
                     @Override
-                    protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                    protected void beforeHookedMethod(MethodHookParam param) {
                         Intent originalIntent = (Intent) param.args[0];
                         if (originalIntent == null || originalIntent.getComponent() == null) return;
 
                         if ("com.tencent.mm.pluginsdk.ui.tools.FileSelectorUI".equals(originalIntent.getComponent().getClassName())) {
-                            XposedBridge.log(TAG + ": Intercepted call to FileSelectorUI.");
+                         //   XposedBridge.log(TAG + ": Intercepted call to FileSelectorUI.");
 
                             HOOKED_REQUEST_CODE = (int) param.args[1];
                             if (originalIntent.hasExtra(WECHAT_ORIGINAL_USER_KEY)) {
                                 TARGET_USER = originalIntent.getStringExtra(WECHAT_ORIGINAL_USER_KEY);
                             }
                             ORIGINAL_EXTRAS = originalIntent.getExtras();
-                            XposedBridge.log(TAG + ": Stored requestCode: " + HOOKED_REQUEST_CODE + ", user: " + TARGET_USER);
+                           // XposedBridge.log(TAG + ": Stored requestCode: " + HOOKED_REQUEST_CODE + ", user: " + TARGET_USER);
 
                             Intent newIntent = new Intent(Intent.ACTION_GET_CONTENT);
                             newIntent.addCategory(Intent.CATEGORY_OPENABLE);
@@ -63,20 +61,20 @@ public class MainHook implements IXposedHookLoadPackage {
                             newIntent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
 
                             param.args[0] = newIntent;
-                            XposedBridge.log(TAG + ": Replaced Intent to use system file picker.");
+                          //  XposedBridge.log(TAG + ": Replaced Intent to use system file picker.");
                         }
                     }
                 });
 
         XposedBridge.hookAllMethods(Activity.class, "onActivityResult", new XC_MethodHook() {
             @Override
-            protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+            protected void beforeHookedMethod(MethodHookParam param) {
                 if (param.args.length < 3 || !(param.args[0] instanceof Integer)) return;
 
                 int requestCode = (int) param.args[0];
 
                 if (requestCode == HOOKED_REQUEST_CODE) {
-                    XposedBridge.log(TAG + ": Caught our hooked onActivityResult with requestCode " + requestCode);
+                   // XposedBridge.log(TAG + ": Caught our hooked onActivityResult with requestCode " + requestCode);
 
                     // 无论成功失败，都重置，避免干扰下一次
                     HOOKED_REQUEST_CODE = -1;
@@ -100,13 +98,13 @@ public class MainHook implements IXposedHookLoadPackage {
                         }
 
                         if (!filePaths.isEmpty()) {
-                            XposedBridge.log(TAG + ": Successfully resolved paths: " + filePaths.toString());
+                            XposedBridge.log(TAG + ": 成功解析的路径: " + filePaths.toString());
 
                             Intent fakeResultIntent = new Intent();
 
                             if (ORIGINAL_EXTRAS != null) {
                                 fakeResultIntent.putExtras(ORIGINAL_EXTRAS);
-                                XposedBridge.log(TAG + ": Restored all original extras.");
+                                XposedBridge.log(TAG + ": 恢复了所有原始的额外内容.");
                             }
 
                             fakeResultIntent.putStringArrayListExtra(WECHAT_FILE_LIST_KEY, filePaths);
@@ -118,9 +116,9 @@ public class MainHook implements IXposedHookLoadPackage {
                             fakeResultIntent.putExtra("from_scene", "com.tencent.mm.ui.chatting.SendAppMessageWrapper_Token");
 
                             param.args[2] = fakeResultIntent;
-                            XposedBridge.log(TAG + ": Forged the final, polished Intent. Passing to original method.");
+                          //  XposedBridge.log(TAG + ": Forged the final, polished Intent. Passing to original method.");
                         } else {
-                            XposedBridge.log(TAG + ": ERROR: Failed to resolve any file paths. Nullifying intent to prevent crash.");
+                         //   XposedBridge.log(TAG + ": ERROR: Failed to resolve any file paths. Nullifying intent to prevent crash.");
                             // **最终精修：如果路径解析失败，就彻底清空返回的Intent，阻止后续流程，避免崩溃**
                             param.args[2] = null;
                         }
@@ -136,20 +134,19 @@ public class MainHook implements IXposedHookLoadPackage {
     // V6版本的路径解析辅助函数保持不变
     private String getPathFromUri(final Context context, final Uri uri) {
         if (uri == null) {
-            Log.e(TAG, "getPathFromUri: received a null URI.");
+          //  Log.e(TAG, "getPathFromUri: received a null URI.");
             return null;
         }
-        Log.d(TAG, "getPathFromUri: Resolving URI -> " + uri.toString());
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT && DocumentsContract.isDocumentUri(context, uri)) {
-            Log.d(TAG, "URI is a Document URI.");
+       // Log.d(TAG, "getPathFromUri: Resolving URI -> " + uri.toString());
+        if (DocumentsContract.isDocumentUri(context, uri)) {
+          //  Log.d(TAG, "URI is a Document URI.");
             if ("com.android.externalstorage.documents".equals(uri.getAuthority())) {
                 final String docId = DocumentsContract.getDocumentId(uri);
                 final String[] split = docId.split(":");
                 final String type = split[0];
                 if ("primary".equalsIgnoreCase(type)) {
-                    String path = Environment.getExternalStorageDirectory() + "/" + split[1];
-                    Log.d(TAG, "Resolved from ExternalStorageProvider: " + path);
-                    return path;
+                    //  Log.d(TAG, "Resolved from ExternalStorageProvider: " + path);
+                    return Environment.getExternalStorageDirectory() + "/" + split[1];
                 }
             }
             else if ("com.android.providers.downloads.documents".equals(uri.getAuthority())) {
@@ -159,12 +156,11 @@ public class MainHook implements IXposedHookLoadPackage {
                         return id.substring(4);
                     }
                     final Uri contentUri = ContentUris.withAppendedId(
-                            Uri.parse("content://downloads/public_downloads"), Long.valueOf(id));
-                    String path = getDataColumn(context, contentUri, null, null);
-                    Log.d(TAG, "Resolved from DownloadsProvider: " + path);
-                    return path;
+                            Uri.parse("content://downloads/public_downloads"), Long.parseLong(id));
+                    //  Log.d(TAG, "Resolved from DownloadsProvider: " + path);
+                    return getDataColumn(context, contentUri, null, null);
                 } catch (NumberFormatException e) {
-                    Log.e(TAG, "DownloadsProvider ID is not a number. Falling back to copy.", e);
+                  //  Log.e(TAG, "DownloadsProvider ID is not a number. Falling back to copy.", e);
                     return copyFileToCache(context, uri);
                 }
             }
@@ -178,20 +174,19 @@ public class MainHook implements IXposedHookLoadPackage {
                 else if ("audio".equals(type)) contentUri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
                 final String selection = "_id=?";
                 final String[] selectionArgs = new String[]{split[1]};
-                String path = getDataColumn(context, contentUri, selection, selectionArgs);
-                Log.d(TAG, "Resolved from MediaProvider: " + path);
-                return path;
+                // Log.d(TAG, "Resolved from MediaProvider: " + path);
+                return getDataColumn(context, contentUri, selection, selectionArgs);
             }
         }
         else if ("content".equalsIgnoreCase(uri.getScheme())) {
-            Log.d(TAG, "URI is a classic Content URI.");
+           // Log.d(TAG, "URI is a classic Content URI.");
             return getDataColumn(context, uri, null, null);
         }
         else if ("file".equalsIgnoreCase(uri.getScheme())) {
-            Log.d(TAG, "URI is a File URI.");
+          //  Log.d(TAG, "URI is a File URI.");
             return uri.getPath();
         }
-        Log.w(TAG, "All standard resolving methods failed. Falling back to copying to cache.");
+      //  Log.w(TAG, "All standard resolving methods failed. Falling back to copying to cache.");
         return copyFileToCache(context, uri);
     }
     private String getDataColumn(Context context, Uri uri, String selection, String[] selectionArgs) {
@@ -205,7 +200,7 @@ public class MainHook implements IXposedHookLoadPackage {
                 return cursor.getString(index);
             }
         } catch (Exception e) {
-            Log.e(TAG, "getDataColumn: Error querying URI.", e);
+          //  Log.e(TAG, "getDataColumn: Error querying URI.", e);
         } finally {
             if (cursor != null) {
                 cursor.close();
@@ -216,7 +211,7 @@ public class MainHook implements IXposedHookLoadPackage {
     private String copyFileToCache(Context context, Uri uri) {
         try (InputStream inputStream = context.getContentResolver().openInputStream(uri)) {
             if (inputStream == null) {
-                Log.e(TAG, "copyFileToCache: Failed to open input stream for URI.");
+             //   Log.e(TAG, "copyFileToCache: Failed to open input stream for URI.");
                 return null;
             }
             String fileName = "temp_file_" + System.currentTimeMillis();
@@ -233,11 +228,10 @@ public class MainHook implements IXposedHookLoadPackage {
                     outputStream.write(buffer, 0, read);
                 }
             }
-            String cachedPath = tempFile.getAbsolutePath();
-            Log.i(TAG, "copyFileToCache: File successfully copied to: " + cachedPath);
-            return cachedPath;
+            // Log.i(TAG, "copyFileToCache: File successfully copied to: " + cachedPath);
+            return tempFile.getAbsolutePath();
         } catch (Exception e) {
-            Log.e(TAG, "copyFileToCache: Exception while copying file.", e);
+          //  Log.e(TAG, "copyFileToCache: Exception while copying file.", e);
             return null;
         }
     }
